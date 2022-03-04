@@ -1,3 +1,5 @@
+from ..utils.bits import overwrite_bits,get_bits
+
 class Header:
 
   '''
@@ -9,57 +11,39 @@ class Header:
   tx: transmit mode if True , operation mode if False.
   seq: sequence if tx, opcode if op.
   '''
-
-  @staticmethod
-  def _overwrite_bits(byte,bits,val,shift):
-    if len(byte) > 1:
-      raise('not a byte!')
-    new_byte = bytearray(byte)
-    new_byte[0] = new_byte[0] & ~((2**bits)-1 << shift)
-    new_byte[0] = new_byte[0] | (val << shift)
-    return new_byte
-  
-  @staticmethod
-  def _get_bits(byte,bits,shift):
-    if len(byte) > 1:
-      raise('not a byte!')
-    new_byte = bytearray(byte)
-    new_byte[0] = new_byte[0] & ((2**bits)-1 << shift)
-    new_byte[0] = new_byte[0] >> shift
-    return new_byte
   
   @staticmethod
   def parse(header:bytes):
     header = bytearray(header[:1])
     return Header(
-    en=bool(Header._get_bits(header,1,7)[0]),
-    id=Header._get_bits(header,3,4)[0],
-    tx=bool(Header._get_bits(header,1,3)[0]),
-    seq=Header._get_bits(header,3,0)[0])
+    en=bool(get_bits(header,1,7)[0]),
+    id=get_bits(header,3,4)[0],
+    tx=bool(get_bits(header,1,3)[0]),
+    seq=get_bits(header,3,0)[0])
   
   def set_en(self,flag:bool=True):
-    self.head = self._overwrite_bits(self.get_header(),1,int(flag),7)
+    self.head = overwrite_bits(self.get_header(),1,int(flag),7)
   
   def set_id(self,id:int=0):
-    self.head = self._overwrite_bits(self.get_header(),3,id,4)
+    self.head = overwrite_bits(self.get_header(),3,id,4)
 
   def set_tx(self,flag:bool=True):
-    self.head = self._overwrite_bits(self.get_header(),1,int(flag),3)
+    self.head = overwrite_bits(self.get_header(),1,int(flag),3)
 
   def set_seq(self,seq:int=0):
-    self.head = self._overwrite_bits(self.get_header(),3,seq,0)
+    self.head = overwrite_bits(self.get_header(),3,seq,0)
   
   def get_en(self):
-    return self._get_bits(self.get_header(),1,7)[0]
+    return get_bits(self.get_header(),1,7)[0]
   
   def get_id(self):
-    return self._get_bits(self.get_header(),3,4)[0]
+    return get_bits(self.get_header(),3,4)[0]
   
   def get_tx(self):
-    return self._get_bits(self.get_header(),1,3)[0]
+    return get_bits(self.get_header(),1,3)[0]
   
   def get_seq(self):
-    return self._get_bits(self.get_header(),3,0)[0]
+    return get_bits(self.get_header(),3,0)[0]
 
   def __init__(self,en:bool=True,id:int=0,tx:bool=False,seq:int=0):
     self.head = b'\x80'

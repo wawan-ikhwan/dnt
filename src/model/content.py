@@ -1,16 +1,9 @@
+from ..utils.chunk import chunk
 from .segment import Segment
-class Content:
+class Content: # Need update
   '''
   Content that will send through buffers
   '''
-
-  @staticmethod
-  def _chunk(data,w):
-    '''
-    Split data into few chunk.
-    eg: chunk('hello',2) --> [he,ll,o]
-    '''
-    return [data[i:i+w] for i in range(0, len(data), w)]
 
   def __init__(self,content:bytes=b'', payload_max_size:int=240):
     '''
@@ -18,10 +11,14 @@ class Content:
     payload_max_size: maximum payload size
     '''
     self._segment_max_size = payload_max_size-1 # -1 karena header tidak dihitung
+    self._chunked_segment = chunk(content,self._segment_max_size)
 
-    self._chunked_segment = self._chunk(content,self._segment_max_size)
-    self.segments = [Segment(s) for s in self._chunk(self._chunked_segment,8)]
+    self.segments = [Segment(s) for s in chunk(self._chunked_segment,8)]
     self.content_length=len(content)
+    self.content = content
   
   def get_segments(self):
     return self.segments
+  
+  def get_content(self):
+    return self.content

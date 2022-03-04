@@ -1,3 +1,5 @@
+from ..utils.bits import get_bits
+
 class Metadata:
   '''
   ttl: actually reserved nibble
@@ -5,21 +7,12 @@ class Metadata:
   '''
 
   @staticmethod
-  def _get_bits(byte,bits,shift):
-    if len(byte) > 1:
-      raise('not a byte!')
-    new_byte = bytearray(byte)
-    new_byte[0] = new_byte[0] & ((2**bits)-1 << shift)
-    new_byte[0] = new_byte[0] >> shift
-    return new_byte
-
-  @staticmethod
   def parse(metadata:bytes):
     return Metadata(
       segment_length = int.from_bytes(metadata[:2],'big'),
-      ttl = int.from_bytes(Metadata._get_bits(metadata[2:3],4,4),'big'),
-      max_seq = int.from_bytes(Metadata._get_bits(metadata[2:3],3,0),'big'),
-      f =  bool(int.from_bytes(Metadata._get_bits(metadata[2:3],1,3),'big')),
+      ttl = int.from_bytes(get_bits(metadata[2:3],4,4),'big'),
+      max_seq = int.from_bytes(get_bits(metadata[2:3],3,0),'big'),
+      f =  bool(int.from_bytes(get_bits(metadata[2:3],1,3),'big')),
       chksum=metadata[3:]
     )
 

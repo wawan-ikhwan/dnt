@@ -1,4 +1,5 @@
 from ..utils.chunk import chunk
+from ..utils.query import parse_query_answer4
 from dnslib import DNSLabel, DNSRecord, DNSQuestion, QTYPE, CLASS
 import socket
 

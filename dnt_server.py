@@ -1,3 +1,5 @@
+from src.utils.int_ipv4 import int2ip
+from src.utils.query import parse_query_domain
 from dnslib import DNSRecord, DNSLabel,RR, AAAA, A, QTYPE
 from dnslib.server import DNSServer, DNSLogger, DNSHandler
 from time import sleep
@@ -8,30 +10,6 @@ import struct
 
 from src.model.packet import Packet
 from src.model.metadata import Metadata
-
-def ip2int(addr):
-  return struct.unpack("!I", socket.inet_aton(addr))[0]
-def int2ip(addr):
-  return socket.inet_ntoa(struct.pack("!I", addr))
-
-def chunk(data,w):
-  '''
-  Split data into few chunk.
-  eg: chunk('hello',2) --> [he,ll,o]
-  '''
-  return [data[i:i+w] for i in range(0, len(data), w)]
-
-def parse_query(d:bytes,tld:str='mip'):
-  '''
-  Filter DNS Header byte to real byte data
-  '''
-  try:
-    d = d[12:d.rfind(tld.encode())-1]
-    d = chunk(d,64)
-    d = [ i[1:] for i in d ]
-    d = b''.join(d)
-    return d
-  except: return b''
 
 class Penangan(DNSHandler):
   """
@@ -63,10 +41,9 @@ class Penangan(DNSHandler):
     return rdata
 
 class Penyelesai:
-  def __init__(self,tunDom:str='mip.my.id',ip:str='27.112.79.120',mainLabel='mip'):
-    if not (mainLabel in tunDom): raise('No mainLabel in domain')
+  def __init__(self,tunDom:str='mip.my.id',ip:str='27.112.79.120'):
     self.tun = DNSLabel(tunDom)
-    self.mainLabel = 'mip'
+    self.leftDom = tunDom.split('.')[0]
     tun=self.tun.idna()
     zone = RR.fromZone(self.tun.idna()+' 600 IN SOA '+tun+' root.'+tun+' 42 600 600 600 600')
     zone.append(*RR.fromZone(tun+' 60 IN NS ns1.'+tun))
@@ -79,31 +56,33 @@ class Penyelesai:
     self.zone=zone
 
   def resolve(self, req : DNSRecord, _):
+    # =======================LAYER 0==================
     jawab =  req.reply()
 
     qn = jawab.get_q().get_qname()
     qt = jawab.get_q().qtype
     qc = jawab.get_q().qclass
 
-    print(qn)
+    # print(qn)
 
-    subdomain = parse_query(req.pack(),tld=self.mainLabel)
+    subdomain = parse_query_domain(req.pack(),leftDom=self.leftDom)
 
     if len(subdomain) == 0:
       jawab.add_answer(RR(qn,qt,qc,ttl=0,rdata=A('1.0.0.0')))
       return jawab
 
+    # =======================LAYER 1================== 
     packet = Packet.parse(subdomain)
 
     if packet.get_en() == False: return jawab
 
     print(packet.get_header(),packet.get_data()[:5])
 
-    # =======================SESSIONING==================
+    # =======================LAYER 2==================
     if qt == QTYPE.A:
       if packet.get_tx() == 0 and packet.get_seq() == 1: # ON HANDSHAKE
         id = randint(0,7)
-        print('Metadata received,',Metadata.parse(packet.get_data()).__dict__)
+        print('Metadata received:',Metadata.parse(packet.get_data()))
         print('Handshaked, ID =',id)
         jawab.add_answer(RR(qn,qt,qc,ttl=0,rdata=A(int2ip(id))))
         return jawab
@@ -111,6 +90,7 @@ class Penyelesai:
         return jawab
       elif packet.get_tx() == 0 and packet.get_seq() == 2: # ON CLOSE
         print('Closed!',packet.get_id())
+        jawab.add_answer(RR(qn,qt,qc,ttl=0,rdata=A(int2ip(id))))
         return jawab
 
     return jawab
