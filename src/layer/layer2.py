@@ -24,4 +24,4 @@ class DNTConnect(DNTSocket):
   
   def send_close(self):
     if self.id is not None:
-      return parse_query_answer4(self.send(Packet(en=True,id=self.id,tx=False,seq=2,max_packet_size=self.PACKET_MAX_SIZE),getRecv=True))
+      return parse_query_answer4(self.send(Packet(en=True,id=self.id,tx=False,seq=2,max_packet_size=self.PACKET_MAX_SIZE).get_packet(),getRecv=True))

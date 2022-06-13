@@ -52,6 +52,6 @@ class Header:
     self.set_tx(tx)
     self.set_seq(seq)
   
-  def get_header(self,object=False):
-    if object: return Header.parse(self.get_header(object=False))
+  def get_header(self,inObject=False):
+    if inObject: return Header.parse(self.get_header(inObject=False))
     return self.head

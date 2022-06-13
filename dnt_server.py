@@ -29,14 +29,12 @@ class Penangan(DNSHandler):
     self.server.logger.log_reply(self,reply)
 
     if reply is None: return
+    rdata = reply.pack()
     if self.protocol == 'udp':
-      rdata = reply.pack()
       if self.udplen and len(rdata) > self.udplen:
         truncated_reply = reply.truncate()
         rdata = truncated_reply.pack()
         self.server.logger.log_truncated(self,truncated_reply)
-    else:
-      rdata = reply.pack()
 
     return rdata
 
@@ -45,6 +43,8 @@ class Penyelesai:
     self.tun = DNSLabel(tunDom)
     self.leftDom = tunDom.split('.')[0]
     tun=self.tun.idna()
+
+    # DEFAULT ZONE, FOR mip.my.id (no relation with DNT)
     zone = RR.fromZone(self.tun.idna()+' 600 IN SOA '+tun+' root.'+tun+' 42 600 600 600 600')
     zone.append(*RR.fromZone(tun+' 60 IN NS ns1.'+tun))
     zone.append(*RR.fromZone(tun+' 60 IN NS ns2.'+tun))
@@ -76,7 +76,9 @@ class Penyelesai:
 
     if packet.get_en() == False: return jawab
 
-    print(packet.get_header(),packet.get_data()[:5])
+    palak = packet.get_header(inObject=True)
+
+    print(palak.get_id(),palak.get_seq(),packet.get_data())
 
     # =======================LAYER 2==================
     if qt == QTYPE.A:
@@ -90,14 +92,10 @@ class Penyelesai:
         return jawab
       elif packet.get_tx() == 0 and packet.get_seq() == 2: # ON CLOSE
         print('Closed!',packet.get_id())
-        jawab.add_answer(RR(qn,qt,qc,ttl=0,rdata=A(int2ip(id))))
+        jawab.add_answer(RR(qn,qt,qc,ttl=0,rdata=A(int2ip(packet.get_id()))))
         return jawab
 
     return jawab
-
-    #   for rr in self.zone:
-    #     if qn == rr.rname and qt == rr.rtype:
-    #       jawab.add_answer(rr)
 
 try:
   server = DNSServer(Penyelesai(),'10.5.143.3',53,tcp=False,logger=DNSLogger(log='-data,-recv,-send,-request,-reply, -invalid request',prefix=False),handler=Penangan)
